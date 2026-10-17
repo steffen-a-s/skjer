@@ -8,7 +8,7 @@ function clean(s = "") {
     .replace(/&amp;/g, "&")
     .replace(/&#39;|&#x27;/g, "'")
     .replace(/&quot;/g, '"')
-    .replace(/&#(d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/\s+/g, " ").trim();
 }
 const genericTitle = /^(arrangementer?|broadcast|loppemarkeder?|events?|program|forside|les mer|se alle arrangementer|kalender|hva skjer)$/i;
