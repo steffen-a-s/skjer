@@ -70,7 +70,6 @@ function collectLinks(html, baseUrl, source, category, pattern) {
     seen.add(url);
     out.push({
       source, title, category, source_url: url,
-      location_context: source === "loppi" ? context : "",
       date: dateMatch ? dateMatch[0] : "",
       date_iso: dateMatch ? toISODate(dateMatch[0]) : "",
       time: timeMatch ? timeMatch[0].replace(/^kl\.?\s*/i, "") : "",
@@ -81,17 +80,17 @@ function collectLinks(html, baseUrl, source, category, pattern) {
   return out;
 }
 function parseLoppi(html) {
-  // Loppi's Bergen page can include cards or links for other cities.
-  // Exclude explicit non-Bergen locations while retaining nearby Bergen-area events.
-  const outsideBergen = /\b(?:oslo|asker|kristiansand|trondheim|tromsø|tromso|stavanger|sandnes|bærum|baerum|drammen|fredrikstad|ålesund|alesund|bodø|bodo|tønsberg|tonsberg|skien|larvik|lillehammer|hamar|sarpsborg|moss|halden|arendal|grimstad|haugesund|molde|ålesund|levanger)\b/i;
+  // Ignore shared city navigation; use the event title and URL, not broad nearby text.
+  const outsideBergen = /\b(?:oslo|asker|kristiansand|trondheim|tromsø|tromso|stavanger|sandnes|bærum|baerum|drammen|fredrikstad|ålesund|alesund|bodø|bodo|tønsberg|tonsberg|skien|larvik|lillehammer|hamar|sarpsborg|moss|halden|arendal|grimstad|haugesund|molde|levanger)\b/i;
   return collectLinks(html, "https://www.loppi.no", "loppi", "Loppemarked", /loppemarked/i)
     .filter(event => {
-      // Ignore navigation/footer links and event cards that explicitly mention another city.
       const path = new URL(event.source_url).pathname.toLowerCase();
-      if (/^\\/loppemarkeder\\/(?:oslo|asker|kristiansand|trondheim|tromso|tromsø|stavanger|sandnes|baerum|bærum)(?:\\/|$)/i.test(path)) return false;
-      return !outsideBergen.test([event.title, event.source_url, event.location_context].join(" "));
+      if (path.startsWith("/loppemarkeder/") && !path.startsWith("/loppemarkeder/bergen/")) {
+        const cityPath = path.match(/^\/loppemarkeder\/([^/]+)/);
+        if (cityPath && cityPath[1] !== "bergen") return false;
+      }
+      return !outsideBergen.test(event.title + " " + event.source_url);
     })
-    .map(({ location_context, ...event }) => event)
     .slice(0, 50);
 }
 function parseUsf(html) {
