@@ -87,13 +87,17 @@ function parseUsf(html) {
 function parseBibliotek(html) {
   return collectLinks(html, "https://bergenbibliotek.no", "bob", "Bibliotek", /arrangement|foredrag|samtale|konsert|film|teater|verksted|litterær|debatt|forfatter/i).slice(0, 150);
 }
+function parseLitteraturhuset(html) {
+  return collectLinks(html, "https://www.litthusbergen.no", "litteraturhuset", "Foredrag og litteratur", /program|arrangement|foredrag|samtale|konsert|poetry|salong|debatt|festival|litterær|forfatter|boksalong/i).slice(0, 150);
+}
 exports.handler = async () => {
   const events = [];
   const errors = [];
   const sources = [
     { name: "usf", url: "https://www.usf.no/arrangementer", parse: parseUsf },
     { name: "loppi", url: "https://www.loppi.no/loppemarkeder/bergen", parse: parseLoppi },
-    { name: "bob", url: "https://bergenbibliotek.no/arrangement/alle-arrangementer", parse: parseBibliotek }
+    { name: "bob", url: "https://bergenbibliotek.no/arrangement/alle-arrangementer", parse: parseBibliotek },
+    { name: "litteraturhuset", url: "https://www.litthusbergen.no/", parse: parseLitteraturhuset }
   ];
   await Promise.all(sources.map(async source => {
     try {
