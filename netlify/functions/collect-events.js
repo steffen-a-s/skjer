@@ -33,11 +33,25 @@ function collectLinks(html, baseUrl, source, category, pattern) {
     try { url = new URL(match[1], baseUrl).href; } catch { continue; }
     const title = clean(match[2]);
     if (!isUsefulTitle(title) || !pattern.test(title + " " + url)) continue;
+    // Metadata is taken only from nearby text on the source page; absent fields stay blank.
+    const start = Math.max(0, match.index - 900);
+    const end = Math.min(html.length, match.index + match[0].length + 900);
+    const context = clean(html.slice(start, end));
+    const dateMatch = context.match(/(?:\d{1,2}\.\s*(?:januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember)(?:\s+\d{4})?|\d{1,2}\.\d{1,2}\.\d{4}|\d{1,2}[.–-]\d{1,2}\.\s*(?:oktober|november|desember|januar|februar|mars|april|mai|juni|juli|august|september))/i);
+    const timeMatch = context.match(/\b(?:kl\.?\s*)?\d{1,2}[.:]\d{2}\b/i);
+    const venueMatch = context.match(/\b(?:USF Verftet|Røkeriet|Sardinen|Cinemateket|Hallen USF|Drotningsvik Senter|Damsgård skole|Ny-Krohnborg fellesbibliotek|Bergen Kjøtt|Kong Christian Fredriks plass|Thon Senter Bergen|Møllaren Aktivitetshus)\b/i);
+    const addressMatch = context.match(/\b(?:Georgernes Verft|Drotningsvikveien|Herman Grans vei|Rogagaten|Skutevikstorget|Strømgaten|Professor Hansteens gate)\s+\d+[A-Za-z]?/i);
     if (!/^https?:$/.test(new URL(url).protocol) || seen.has(url)) continue;
     if (/facebook|instagram|ticketmaster|mailto:|javascript:/i.test(url)) continue;
     if (new URL(url).hostname !== new URL(baseUrl).hostname) continue;
     seen.add(url);
-    out.push({ source, title, category, source_url: url });
+    out.push({
+      source, title, category, source_url: url,
+      date: dateMatch ? dateMatch[0] : "",
+      time: timeMatch ? timeMatch[0].replace(/^kl\.?\s*/i, "") : "",
+      venue: venueMatch ? venueMatch[0] : "",
+      address: addressMatch ? addressMatch[0] : ""
+    });
   }
   return out;
 }
