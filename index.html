@@ -53,6 +53,11 @@ function render(){
   const title=String(e.title||'').trim();
   const url=String(e.source_url||'');
   if(!title||genericTitles.test(title)||title.length<4||url==='#')return false;
+  if(e.date_iso){
+   const eventDay=Date.parse(e.date_iso+'T00:00:00');
+   const today=new Date();today.setHours(0,0,0,0);
+   if(Number.isFinite(eventDay)&&eventDay<today.getTime())return false;
+  }
   return (category==='all'||source===category)&&(!q||(title+' '+source+' '+String(e.category||'')).toLocaleLowerCase('no').includes(q));
  });
  const unique=[];
