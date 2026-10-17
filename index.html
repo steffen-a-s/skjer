@@ -11,7 +11,7 @@ h1{font-size:clamp(36px,6vw,58px);letter-spacing:-2px;line-height:1.04;margin:12
 .status{margin-top:28px;background:white;border:1px solid var(--line);border-radius:18px;padding:18px 20px}.ok{color:#087443;font-weight:750}.small{color:#78859a;font-size:14px;margin-top:7px}
 .controls{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 18px}.search{flex:1;min-width:220px}input,select{width:100%;padding:13px 15px;border:1px solid #dce3ee;border-radius:12px;background:white;color:var(--ink);font:inherit;outline-color:var(--blue)}
 .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:24px 0 14px}.section-head h2{font-size:22px;margin:0}.count{color:var(--muted);font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.event{background:white;border:1px solid var(--line);border-radius:16px;padding:19px;min-width:0;display:flex;flex-direction:column;gap:12px;box-shadow:0 3px 12px rgba(16,27,53,.025)}.tag{align-self:flex-start;background:#edf2ff;color:#2849a8;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:750}.event h3{font-size:18px;line-height:1.35;margin:0;overflow-wrap:anywhere}.event a{color:var(--blue);font-weight:700;text-decoration:none;margin-top:auto}.event a:hover{text-decoration:underline}.source{font-size:13px;color:var(--muted)}.message{background:white;border:1px solid var(--line);border-radius:16px;padding:22px;color:var(--muted);line-height:1.6}.footer{margin-top:26px;color:#8490a3;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.event{background:white;border:1px solid var(--line);border-radius:16px;padding:19px;min-width:0;display:flex;flex-direction:column;gap:12px;box-shadow:0 3px 12px rgba(16,27,53,.025)}.tag{align-self:flex-start;background:#edf2ff;color:#2849a8;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:750}.event h3{font-size:18px;line-height:1.35;margin:0;overflow-wrap:anywhere}.event a{color:var(--blue);font-weight:700;text-decoration:none;margin-top:auto}.event a:hover{text-decoration:underline}.source{font-size:13px;color:var(--muted)}.details{display:flex;flex-wrap:wrap;gap:7px;font-size:13px;color:#4f5d73}.detail{background:#f5f7fb;border-radius:8px;padding:6px 8px}.message{background:white;border:1px solid var(--line);border-radius:16px;padding:22px;color:var(--muted);line-height:1.6}.footer{margin-top:26px;color:#8490a3;font-size:12px}
 @media(max-width:640px){main{padding:25px 16px 60px}.eyebrow{margin-top:42px}.grid{grid-template-columns:1fr}.section-head{align-items:flex-start;flex-direction:column}h1{letter-spacing:-1.5px}}
 </style>
 </head>
@@ -69,7 +69,12 @@ function render(){
   const source=String(e.source||'').toLowerCase();
   const label=source==='loppi'?'Loppemarked':source==='usf'?'USF Verftet':(e.category||'Arrangement');
   let url='#';try{const parsed=new URL(e.source_url);if(parsed.protocol==='https:'||parsed.protocol==='http:')url=parsed.href;}catch{}
-  return '<article class="event"><span class="tag">'+safeText(label)+'</span><h3>'+safeText(e.title)+'</h3><div class="source">Kilde: '+safeText(source==='loppi'?'Loppi Bergen':source==='usf'?'USF Verftet':source||'Ukjent')+'</div><a href="'+safeText(url)+'" target="_blank" rel="noopener noreferrer">Se hos arrangøren ↗</a></article>';
+  const details=[];
+  if(e.date)details.push('<span class="detail">📅 '+safeText(e.date)+'</span>');
+  if(e.time)details.push('<span class="detail">🕒 '+safeText(e.time)+'</span>');
+  if(e.venue)details.push('<span class="detail">📍 '+safeText(e.venue)+'</span>');
+  if(e.address)details.push('<span class="detail">📍 '+safeText(e.address)+'</span>');
+  return '<article class="event"><span class="tag">'+safeText(label)+'</span><h3>'+safeText(e.title)+'</h3>'+(details.length?'<div class="details">'+details.join('')+'</div>':'')+'<div class="source">Kilde: '+safeText(source==='loppi'?'Loppi Bergen':source==='usf'?'USF Verftet':source||'Ukjent')+'</div><a href="'+safeText(url)+'" target="_blank" rel="noopener noreferrer">Se hos arrangøren ↗</a></article>';
  }).join('');
 }
 searchEl.addEventListener('input',render);categoryEl.addEventListener('change',render);
