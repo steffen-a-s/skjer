@@ -35,22 +35,25 @@ const searchEl=document.getElementById('search');
 const categoryEl=document.getElementById('category');
 let allEvents=[];
 function safeText(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+const genericTitles=/^(arrangementer?|broadcast|loppemarkeder?|events?|program|forside|les mer|se alle arrangementer)$/i;
 function render(){
  const q=searchEl.value.trim().toLocaleLowerCase('no');
  const category=categoryEl.value;
  const filtered=allEvents.filter(e=>{
   const source=String(e.source||'').toLowerCase();
-  const title=String(e.title||'').toLocaleLowerCase('no');
+  const title=String(e.title||'').trim();
+  const url=String(e.source_url||'');
+  if(!title||genericTitles.test(title)||title.length<4||url==='#')return false;
   return (category==='all'||source===category)&&(!q||(title+' '+source+' '+String(e.category||'')).toLocaleLowerCase('no').includes(q));
  });
  document.getElementById('count').textContent=filtered.length+' treff';
- if(!filtered.length){eventsEl.className='';eventsEl.innerHTML='<div class="message">Ingen treff på dette søket. Prøv et annet ord eller velg «Alle kategorier».</div>';return;}
+ if(!filtered.length){eventsEl.className='';eventsEl.innerHTML='<div class="message">Ingen konkrete arrangementer fant vi med dette søket. Prøv et annet ord eller velg «Alle kategorier».</div>';return;}
  eventsEl.className='grid';
  eventsEl.innerHTML=filtered.map(e=>{
   const source=String(e.source||'').toLowerCase();
   const label=source==='loppi'?'Loppemarked':source==='usf'?'USF Verftet':(e.category||'Arrangement');
   let url='#';try{const parsed=new URL(e.source_url);if(parsed.protocol==='https:'||parsed.protocol==='http:')url=parsed.href;}catch{}
-  return '<article class="event"><span class="tag">'+safeText(label)+'</span><h3>'+safeText(e.title||'Arrangement')+'</h3><div class="source">Kilde: '+safeText(source==='loppi'?'Loppi Bergen':source==='usf'?'USF Verftet':source||'Ukjent')+'</div><a href="'+safeText(url)+'" target="_blank" rel="noopener noreferrer">Se hos arrangøren ↗</a></article>';
+  return '<article class="event"><span class="tag">'+safeText(label)+'</span><h3>'+safeText(e.title)+'</h3><div class="source">Kilde: '+safeText(source==='loppi'?'Loppi Bergen':source==='usf'?'USF Verftet':source||'Ukjent')+'</div><a href="'+safeText(url)+'" target="_blank" rel="noopener noreferrer">Se hos arrangøren ↗</a></article>';
  }).join('');
 }
 searchEl.addEventListener('input',render);categoryEl.addEventListener('change',render);
@@ -62,7 +65,7 @@ async function loadEvents(){
   if(!Array.isArray(data.events))throw new Error('Svaret mangler arrangementer');
   allEvents=data.events;
   document.getElementById('statusTitle').textContent=data.errors&&data.errors.length?'● Innhentingen er delvis tilgjengelig':'● Automatisk innhenting er aktivert';
-  document.getElementById('statusText').textContent=allEvents.length+' oppføringer hentet fra de første kildene. Enkelte treff kan være ufullstendige mens vi forbedrer filtreringen.';
+  document.getElementById('statusText').textContent='Kildene er sjekket. Vi skjuler generelle overskrifter for å vise mer relevante treff.';
   document.getElementById('updated').textContent=data.updated_at?'Sist sjekket: '+new Date(data.updated_at).toLocaleString('no-NO'):'';
   render();
  }catch(error){
