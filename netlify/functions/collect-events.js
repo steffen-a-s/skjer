@@ -28,16 +28,23 @@ function toISODate(raw) {
   if (!raw) return "";
   const months = {januar:1,februar:2,mars:3,april:4,mai:5,juni:6,juli:7,august:8,september:9,oktober:10,november:11,desember:12};
   let day, month, year;
-  let m = raw.match(/^(\d{1,2})\.\s*([a-zæøå]+)(?:\s+(\d{4}))?$/i);
+  // For date ranges such as "12.–13. oktober", use the first day.
+  let m = raw.match(/^(\d{1,2})\s*[.–-]\s*\d{1,2}\.\s*([a-zæøå]+)(?:\s+(\d{4}))?$/i);
   if (m && months[m[2].toLowerCase()]) {
     day=Number(m[1]); month=months[m[2].toLowerCase()]; year=m[3]?Number(m[3]):new Date().getFullYear();
   } else {
-    m=raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-    if (!m) return "";
-    day=Number(m[1]); month=Number(m[2]); year=Number(m[3]);
+    m = raw.match(/^(\d{1,2})\.\s*([a-zæøå]+)(?:\s+(\d{4}))?$/i);
+    if (m && months[m[2].toLowerCase()]) {
+      day=Number(m[1]); month=months[m[2].toLowerCase()]; year=m[3]?Number(m[3]):new Date().getFullYear();
+    } else {
+      m=raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+      if (!m) return "";
+      day=Number(m[1]); month=Number(m[2]); year=Number(m[3]);
+    }
   }
-  const iso = year+"-"+String(month).padStart(2,"0")+"-"+String(day).padStart(2,"0");
-  return Number.isNaN(Date.parse(iso)) ? "" : iso;
+  const date = new Date(Date.UTC(year, month-1, day));
+  if (date.getUTCFullYear()!==year || date.getUTCMonth()!==month-1 || date.getUTCDate()!==day) return "";
+  return year+"-"+String(month).padStart(2,"0")+"-"+String(day).padStart(2,"0");
 }
 function collectLinks(html, baseUrl, source, category, pattern) {
   const out = [];
