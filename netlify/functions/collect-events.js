@@ -1,8 +1,5 @@
-// Skjer: scheduled event collector
-// Første versjon henter USF + Loppi. Data lagres i Netlify Blobs.
-// Planlagt kjøring: én gang daglig via Netlify Scheduled Functions.
-
-const { getStore } = require("@netlify/blobs");
+// Skjer: hente arrangementer fra USF og Loppi.
+// Denne versjonen returnerer arrangementene direkte og krever ikke Netlify Blobs-oppsett.
 
 function clean(s = "") {
   return s.replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -10,75 +7,78 @@ function clean(s = "") {
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
+    .replace(/&#39;|&#x27;/g, "'")
+    .replace(/&quot;/g, '"')
     .replace(/\s+/g, " ").trim();
 }
 
 async function getHtml(url) {
-  const r = await fetch(url, { headers: { "user-agent": "Skjer/1.0 event collector" } });
-  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
-  return await r.text();
+  const response = await fetch(url, {
+    headers: { "user-agent": "Skjer/1.0 event collector" }
+  });
+  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+  return response.text();
 }
 
 function parseLoppi(html) {
   const out = [];
-  const names = [...html.matchAll(/<h[1-4][^>]*>(.*?)<\/h[1-4]>/gis)]
-    .map(m => clean(m[1]))
-    .filter(x => x && !/loppemarkeder i bergen|tidligere/i.test(x));
-  for (const title of names.slice(0, 30)) {
-    out.push({
-      source: "loppi",
-      title,
-      category: "loppemarked",
-      source_url: "https://www.loppi.no/loppemarkeder/bergen"
-    });
+  const re = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const seen = new Set();
+  for (const match of html.matchAll(re)) {
+    const url = new URL(match[1], "https://www.loppi.no").href;
+    const title = clean(match[2]);
+    if (!title || seen.has(url) || !/loppemarked/i.test(title + " " + url)) continue;
+    if (/loppi\.no\/?$/.test(url)) continue;
+    seen.add(url);
+    out.push({ source: "loppi", title, category: "Loppemarked", source_url: url });
   }
-  return out;
+  return out.slice(0, 50);
 }
 
 function parseUsf(html) {
   const out = [];
-  const re = /<a[^>]+href=["']([^"']*\/events\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const re = /<a\b[^>]*href=["']([^"']*(?:events|arrangement)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
   const seen = new Set();
-  for (const m of html.matchAll(re)) {
-    const title = clean(m[2]);
-    const url = new URL(m[1], "https://www.usf.no").href;
-    if (!title || seen.has(url)) continue;
+  for (const match of html.matchAll(re)) {
+    const title = clean(match[2]);
+    const url = new URL(match[1], "https://www.usf.no").href;
+    if (!title || title.length < 3 || seen.has(url)) continue;
+    if (/facebook|instagram|ticketmaster/i.test(url)) continue;
     seen.add(url);
-    out.push({ source: "usf", title, category: "arrangement", source_url: url });
+    out.push({ source: "usf", title, category: "Arrangement", source_url: url });
   }
   return out.slice(0, 100);
 }
 
-exports.config = { schedule: "@daily" };
-
 exports.handler = async () => {
-  const results = [];
+  const events = [];
   const errors = [];
+  const sources = [
+    { name: "usf", url: "https://www.usf.no/arrangementer", parse: parseUsf },
+    { name: "loppi", url: "https://www.loppi.no/loppemarkeder/bergen", parse: parseLoppi }
+  ];
 
-  try {
-    const html = await getHtml("https://www.usf.no/arrangementer");
-    results.push(...parseUsf(html));
-  } catch (e) {
-    errors.push(String(e));
-  }
-
-  try {
-    const html = await getHtml("https://www.loppi.no/loppemarkeder/bergen");
-    results.push(...parseLoppi(html));
-  } catch (e) {
-    errors.push(String(e));
-  }
-
-  const store = getStore("skjer-events");
-  await store.setJSON("latest", {
-    updated_at: new Date().toISOString(),
-    count: results.length,
-    errors,
-    events: results
-  });
+  await Promise.all(sources.map(async source => {
+    try {
+      const html = await getHtml(source.url);
+      events.push(...source.parse(html));
+    } catch (error) {
+      errors.push({ source: source.name, message: String(error.message || error) });
+    }
+  }));
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ ok: errors.length === 0, count: results.length, errors })
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "public, max-age=300"
+    },
+    body: JSON.stringify({
+      ok: errors.length === 0,
+      updated_at: new Date().toISOString(),
+      count: events.length,
+      errors,
+      events
+    })
   };
 };
