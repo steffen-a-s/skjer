@@ -24,6 +24,21 @@ async function getHtml(url) {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.text();
 }
+function toISODate(raw) {
+  if (!raw) return "";
+  const months = {januar:1,februar:2,mars:3,april:4,mai:5,juni:6,juli:7,august:8,september:9,oktober:10,november:11,desember:12};
+  let day, month, year;
+  let m = raw.match(/^(\d{1,2})\.\s*([a-zæøå]+)(?:\s+(\d{4}))?$/i);
+  if (m && months[m[2].toLowerCase()]) {
+    day=Number(m[1]); month=months[m[2].toLowerCase()]; year=m[3]?Number(m[3]):new Date().getFullYear();
+  } else {
+    m=raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (!m) return "";
+    day=Number(m[1]); month=Number(m[2]); year=Number(m[3]);
+  }
+  const iso = year+"-"+String(month).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+  return Number.isNaN(Date.parse(iso)) ? "" : iso;
+}
 function collectLinks(html, baseUrl, source, category, pattern) {
   const out = [];
   const seen = new Set();
@@ -48,6 +63,7 @@ function collectLinks(html, baseUrl, source, category, pattern) {
     out.push({
       source, title, category, source_url: url,
       date: dateMatch ? dateMatch[0] : "",
+      date_iso: dateMatch ? toISODate(dateMatch[0]) : "",
       time: timeMatch ? timeMatch[0].replace(/^kl\.?\s*/i, "") : "",
       venue: venueMatch ? venueMatch[0] : "",
       address: addressMatch ? addressMatch[0] : ""
