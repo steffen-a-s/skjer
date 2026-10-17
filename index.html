@@ -61,7 +61,16 @@ function render(){
   const key=(String(event.title||'').trim().toLocaleLowerCase('no')+'|'+String(event.source||''));
   if(!seen.has(key)){seen.add(key);unique.push(event);}
  }
- unique.sort((a,b)=>relevanceScore(b)-relevanceScore(a)||String(a.title||'').localeCompare(String(b.title||''),'no'));
+ unique.sort((a,b)=>{
+  const today=new Date();today.setHours(0,0,0,0);
+  const da=a.date_iso?Date.parse(a.date_iso+'T00:00:00'):NaN;
+  const db=b.date_iso?Date.parse(b.date_iso+'T00:00:00'):NaN;
+  const futureA=Number.isFinite(da)&&da>=today.getTime();
+  const futureB=Number.isFinite(db)&&db>=today.getTime();
+  if(futureA&&futureB&&da!==db)return da-db;
+  if(futureA!==futureB)return futureA?-1:1;
+  return relevanceScore(b)-relevanceScore(a)||String(a.title||'').localeCompare(String(b.title||''),'no');
+ });
  document.getElementById('count').textContent=unique.length+' treff';
  if(!unique.length){eventsEl.className='';eventsEl.innerHTML='<div class="message">Ingen konkrete arrangementer fant vi med dette søket. Prøv et annet ord eller velg «Alle kategorier».</div>';return;}
  eventsEl.className='grid';
