@@ -58,7 +58,8 @@ function collectLinks(html, baseUrl, source, category, pattern) {
     // Metadata is taken only from nearby text on the source page; absent fields stay blank.
     const start = Math.max(0, match.index - 900);
     const end = Math.min(html.length, match.index + match[0].length + 900);
-    const context = clean(html.slice(start, end));
+    const rawContext = html.slice(start, end);
+    const context = clean(rawContext);
     const dateMatch = context.match(/(?:\d{1,2}\.\s*(?:januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember)(?:\s+\d{4})?|\d{1,2}\.\d{1,2}\.\d{4}|\d{1,2}[.–-]\d{1,2}\.\s*(?:oktober|november|desember|januar|februar|mars|april|mai|juni|juli|august|september))/i);
     const timeMatch = context.match(/\b(?:kl\.?\s*)?\d{1,2}[.:]\d{2}\b/i);
     const venueMatch = context.match(/\b(?:USF Verftet|Røkeriet|Sardinen|Cinemateket|Hallen USF|Drotningsvik Senter|Damsgård skole|Ny-Krohnborg fellesbibliotek|Bergen Kjøtt|Kong Christian Fredriks plass|Thon Senter Bergen|Møllaren Aktivitetshus)\b/i);
@@ -69,6 +70,7 @@ function collectLinks(html, baseUrl, source, category, pattern) {
     seen.add(url);
     out.push({
       source, title, category, source_url: url,
+      location_context: source === "loppi" ? context : "",
       date: dateMatch ? dateMatch[0] : "",
       date_iso: dateMatch ? toISODate(dateMatch[0]) : "",
       time: timeMatch ? timeMatch[0].replace(/^kl\.?\s*/i, "") : "",
@@ -83,7 +85,13 @@ function parseLoppi(html) {
   // Exclude explicit non-Bergen locations while retaining nearby Bergen-area events.
   const outsideBergen = /\b(?:oslo|asker|kristiansand|trondheim|tromsø|tromso|stavanger|sandnes|bærum|baerum|drammen|fredrikstad|ålesund|alesund|bodø|bodo|tønsberg|tonsberg|skien|larvik|lillehammer|hamar|sarpsborg|moss|halden|arendal|grimstad|haugesund|molde|ålesund|levanger)\b/i;
   return collectLinks(html, "https://www.loppi.no", "loppi", "Loppemarked", /loppemarked/i)
-    .filter(event => !outsideBergen.test([event.title, event.source_url, event.venue, event.address].join(" ")))
+    .filter(event => {
+      // Ignore navigation/footer links and event cards that explicitly mention another city.
+      const path = new URL(event.source_url).pathname.toLowerCase();
+      if (/^\\/loppemarkeder\\/(?:oslo|asker|kristiansand|trondheim|tromso|tromsø|stavanger|sandnes|baerum|bærum)(?:\\/|$)/i.test(path)) return false;
+      return !outsideBergen.test([event.title, event.source_url, event.location_context].join(" "));
+    })
+    .map(({ location_context, ...event }) => event)
     .slice(0, 50);
 }
 function parseUsf(html) {
