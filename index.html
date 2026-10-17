@@ -23,7 +23,7 @@ h1{font-size:clamp(36px,6vw,58px);letter-spacing:-2px;line-height:1.04;margin:12
 <div class="status" aria-live="polite"><div class="ok" id="statusTitle">● Henter arrangementer …</div><div class="small" id="statusText">Sjekker de første kildene.</div></div>
 <div class="controls">
 <div class="search"><input id="search" type="search" placeholder="Søk etter arrangementer …" aria-label="Søk etter arrangementer"></div>
-<div style="min-width:190px"><select id="category" aria-label="Velg kategori"><option value="all">Alle kategorier</option><option value="loppi">Loppemarkeder</option><option value="usf">USF Verftet</option><option value="bob">Bergen Offentlige Bibliotek</option></select></div>
+<div style="min-width:190px"><select id="category" aria-label="Velg kategori"><option value="all">Alle kategorier</option><option value="loppi">Loppemarkeder</option><option value="usf">USF Verftet</option><option value="bob">Bergen Offentlige Bibliotek</option><option value="litteraturhuset">Litteraturhuset i Bergen</option></select></div>
 </div>
 <div class="section-head"><h2>Oppdag i Bergen</h2><div class="count" id="count">Laster …</div></div>
 <div id="events" class="grid"><div class="message">Arrangementene lastes inn. Dette kan ta et lite øyeblikk.</div></div>
@@ -81,14 +81,14 @@ function render(){
  eventsEl.className='grid';
  eventsEl.innerHTML=unique.map(e=>{
   const source=String(e.source||'').toLowerCase();
-  const label=source==='loppi'?'Loppemarked':source==='usf'?'USF Verftet':source==='bob'?'Bergen Offentlige Bibliotek':(e.category||'Arrangement');
+  const label=source==='loppi'?'Loppemarked':source==='usf'?'USF Verftet':source==='bob'?'Bergen Offentlige Bibliotek':source==='litteraturhuset'?'Litteraturhuset i Bergen':(e.category||'Arrangement');
   let url='#';try{const parsed=new URL(e.source_url);if(parsed.protocol==='https:'||parsed.protocol==='http:')url=parsed.href;}catch{}
   const details=[];
   if(e.date)details.push('<span class="detail">📅 '+safeText(e.date)+'</span>');
   if(e.time)details.push('<span class="detail">🕒 '+safeText(e.time)+'</span>');
   if(e.venue)details.push('<span class="detail">📍 '+safeText(e.venue)+'</span>');
   if(e.address)details.push('<span class="detail">📍 '+safeText(e.address)+'</span>');
-  return '<article class="event"><span class="tag">'+safeText(label)+'</span><h3>'+safeText(e.title)+'</h3>'+(details.length?'<div class="details">'+details.join('')+'</div>':'')+'<div class="source">Kilde: '+safeText(source==='loppi'?'Loppi Bergen':source==='usf'?'USF Verftet':source==='bob'?'Bergen Offentlige Bibliotek':source||'Ukjent')+'</div><a href="'+safeText(url)+'" target="_blank" rel="noopener noreferrer">Se hos arrangøren ↗</a></article>';
+  return '<article class="event"><span class="tag">'+safeText(label)+'</span><h3>'+safeText(e.title)+'</h3>'+(details.length?'<div class="details">'+details.join('')+'</div>':'')+'<div class="source">Kilde: '+safeText(source==='loppi'?'Loppi Bergen':source==='usf'?'USF Verftet':source==='bob'?'Bergen Offentlige Bibliotek':source==='litteraturhuset'?'Litteraturhuset i Bergen':source||'Ukjent')+'</div><a href="'+safeText(url)+'" target="_blank" rel="noopener noreferrer">Se hos arrangøren ↗</a></article>';
  }).join('');
 }
 searchEl.addEventListener('input',render);categoryEl.addEventListener('change',render);
