@@ -84,12 +84,16 @@ function parseLoppi(html) {
 function parseUsf(html) {
   return collectLinks(html, "https://www.usf.no", "usf", "Arrangement", /arrangement|event|konsert|film|teater|foredrag|utstilling|festival/i).slice(0, 100);
 }
+function parseBibliotek(html) {
+  return collectLinks(html, "https://bergenbibliotek.no", "bob", "Bibliotek", /arrangement|foredrag|samtale|konsert|film|teater|verksted|litterær|debatt|forfatter/i).slice(0, 150);
+}
 exports.handler = async () => {
   const events = [];
   const errors = [];
   const sources = [
     { name: "usf", url: "https://www.usf.no/arrangementer", parse: parseUsf },
-    { name: "loppi", url: "https://www.loppi.no/loppemarkeder/bergen", parse: parseLoppi }
+    { name: "loppi", url: "https://www.loppi.no/loppemarkeder/bergen", parse: parseLoppi },
+    { name: "bob", url: "https://bergenbibliotek.no/arrangement/alle-arrangementer", parse: parseBibliotek }
   ];
   await Promise.all(sources.map(async source => {
     try {
