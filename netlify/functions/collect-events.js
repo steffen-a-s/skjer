@@ -79,7 +79,12 @@ function collectLinks(html, baseUrl, source, category, pattern) {
   return out;
 }
 function parseLoppi(html) {
-  return collectLinks(html, "https://www.loppi.no", "loppi", "Loppemarked", /loppemarked/i).slice(0, 50);
+  // Loppi's Bergen page can include cards or links for other cities.
+  // Exclude explicit non-Bergen locations while retaining nearby Bergen-area events.
+  const outsideBergen = /\\b(?:oslo|asker|kristiansand|trondheim|tromsø|tromso|stavanger|sandnes|bærum|baerum|drammen|fredrikstad|ålesund|alesund|bodø|bodo|tønsberg|tonsberg|skien|larvik|lillehammer|hamar|sarpsborg|moss|halden|arendal|grimstad|haugesund|molde|ålesund|levanger)\\b/i;
+  return collectLinks(html, "https://www.loppi.no", "loppi", "Loppemarked", /loppemarked/i)
+    .filter(event => !outsideBergen.test([event.title, event.source_url, event.venue, event.address].join(" ")))
+    .slice(0, 50);
 }
 function parseUsf(html) {
   return collectLinks(html, "https://www.usf.no", "usf", "Arrangement", /arrangement|event|konsert|film|teater|foredrag|utstilling|festival/i).slice(0, 100);
