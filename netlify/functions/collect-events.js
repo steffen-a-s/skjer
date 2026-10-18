@@ -34,7 +34,7 @@ function isUsefulTitle(title, url = "") {
 async function getHtml(url) {
   const response = await fetch(url, {
     headers: { "user-agent": "Skjer/1.1 (Bergen event discovery)" },
-    signal: AbortSignal.timeout(12000)
+    signal: AbortSignal.timeout(20000)
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.text();
@@ -104,7 +104,16 @@ function parseLoppi(html) {
         const cityPath = path.match(/^\/loppemarkeder\/([^/]+)/);
         if (cityPath && cityPath[1] !== "bergen") return false;
       }
-      return !outsideBergen.test(event.title + " " + event.source_url);
+      if (outsideBergen.test(event.title + " " + event.source_url)) return false;
+      // Loppi appends "Sist DD. måned" to old listings. Use that explicit
+      // marker rather than a nearby date, which may belong to another card.
+      const staleMarker = event.title.match(/\bSist\s+(\d{1,2}\.\s*[a-zæøå]+(?:\s+\d{4})?)/i);
+      if (staleMarker) {
+        const staleDate = toISODate(staleMarker[1]);
+        const today = new Date().toISOString().slice(0, 10);
+        if (staleDate && staleDate < today) return false;
+      }
+      return true;
     })
     .slice(0, 50);
 }
