@@ -12,12 +12,24 @@ function clean(s = "") {
     .replace(/\s+/g, " ").trim();
 }
 const genericTitle = /^(arrangementer?|broadcast|loppemarkeder?|events?|program|forside|les mer|se alle(?: arrangementer)?|kalender|hva skjer|ical|i cal|past|upcoming|rss(?:-feed)?|feed|neste(?::.*)?|til de \d+ neste(?:\s*[»›>])?|se program|vis program|alle arrangementer|arrangementskalender|forskning og debatt|musikk og film|digitale arrangement|forrige:?\s*digitale arrangement)$/i;
-function isUsefulTitle(title) {
-  return title && title.length >= 4 && !genericTitle.test(title) &&
-    !/^(facebook|instagram|youtube|meny|logg inn|søk|se program|program|past|ical|rss-feed)$/i.test(title) &&
-    !/^neste:\s*/i.test(title) && !/^til de\s+\d+\s+neste/i.test(title) &&
-    !/^(?:«?\s*)?(?:forrige|neste)\s*:/i.test(title) &&
-    !/^(?:se alle|forskning og debatt|musikk og film|digitale arrangement)\s*[»›>]*$/i.test(title);
+function isUsefulTitle(title, url = "") {
+  const normalized = clean(title)
+    .replace(/^[«‹\s]+|[»›>\s]+$/g, "")
+    .replace(/[.!…]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const navigationTitle = /^(?:arrangement(?:er)?|broadcast|loppemarkeder?|events?|program|forside|les mer|se alle(?: arrangementer)?|kalender|hva skjer|i\s?cal|past|upcoming|rss(?:-feed)?|feed|neste(?::.*)?|til de\s+\d+\s+neste|se program|vis program|alle arrangementer|arrangementskalender|forskning og debatt|musikk og film|digitale arrangement|forrige:?\s*digitale arrangement|forrige|neste|lei rom hos oss|om litteraturhuset|skjønnlitteratur|diverse arrangement)$/i;
+  if (!normalized || normalized.length < 4 || navigationTitle.test(normalized)) return false;
+  if (/^(?:facebook|instagram|youtube|meny|logg inn|søk)$/i.test(normalized)) return false;
+  if (/^(?:se alle|se hele programmet|vis alle|tilbake|forrige|neste)(?:\b|$)/i.test(normalized)) return false;
+
+  // Exclude known listing, category, pagination and feed URLs. These are
+  // navigation destinations, not individual events.
+  let path = "";
+  try { path = new URL(url).pathname.toLowerCase().replace(/\/$/, ""); } catch {}
+  if (/\/(?:kategori|category|categories|tag|tags|feed|rss|ical|icalendar)(?:\/|$)/i.test(path)) return false;
+  if (/\/(?:alle-arrangementer|arrangementer|program|se-alle|page\/[0-9]+)$/i.test(path)) return false;
+  return true;
 }
 async function getHtml(url) {
   const response = await fetch(url, {
@@ -57,7 +69,7 @@ function collectLinks(html, baseUrl, source, category, pattern) {
     let url;
     try { url = new URL(match[1], baseUrl).href; } catch { continue; }
     const title = clean(match[2]);
-    if (!isUsefulTitle(title) || !pattern.test(title + " " + url)) continue;
+    if (!isUsefulTitle(title, url) || !pattern.test(title + " " + url)) continue;
     // Metadata is taken only from nearby text on the source page; absent fields stay blank.
     const start = Math.max(0, match.index - 900);
     const end = Math.min(html.length, match.index + match[0].length + 900);
