@@ -11,11 +11,13 @@ function clean(s = "") {
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/\s+/g, " ").trim();
 }
-const genericTitle = /^(arrangementer?|broadcast|loppemarkeder?|events?|program|forside|les mer|se alle arrangementer|kalender|hva skjer|ical|i cal|past|upcoming|rss(?:-feed)?|feed|neste(?::.*)?|til de \d+ neste(?:\s*[»›>])?|se program|vis program|alle arrangementer|arrangementskalender)$/i;
+const genericTitle = /^(arrangementer?|broadcast|loppemarkeder?|events?|program|forside|les mer|se alle(?: arrangementer)?|kalender|hva skjer|ical|i cal|past|upcoming|rss(?:-feed)?|feed|neste(?::.*)?|til de \d+ neste(?:\s*[»›>])?|se program|vis program|alle arrangementer|arrangementskalender|forskning og debatt|musikk og film|digitale arrangement|forrige:?\s*digitale arrangement)$/i;
 function isUsefulTitle(title) {
   return title && title.length >= 4 && !genericTitle.test(title) &&
     !/^(facebook|instagram|youtube|meny|logg inn|søk|se program|program|past|ical|rss-feed)$/i.test(title) &&
-    !/^neste:\s*/i.test(title) && !/^til de\s+\d+\s+neste/i.test(title);
+    !/^neste:\s*/i.test(title) && !/^til de\s+\d+\s+neste/i.test(title) &&
+    !/^(?:«?\s*)?(?:forrige|neste)\s*:/i.test(title) &&
+    !/^(?:se alle|forskning og debatt|musikk og film|digitale arrangement)\s*[»›>]*$/i.test(title);
 }
 async function getHtml(url) {
   const response = await fetch(url, {
