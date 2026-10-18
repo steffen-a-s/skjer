@@ -29,6 +29,8 @@ function isUsefulTitle(title, url = "") {
   try { path = new URL(url).pathname.toLowerCase().replace(/\/$/, ""); } catch {}
   if (/\/(?:kategori|category|categories|tag|tags|feed|rss|ical|icalendar)(?:\/|$)/i.test(path)) return false;
   if (/\/(?:alle-arrangementer|arrangementer|program|se-alle|page\/[0-9]+)$/i.test(path)) return false;
+  // This is a series/landing page, not an individual Litteraturhuset event.
+  if (/^\/boksalongen$/i.test(path)) return false;
   return true;
 }
 async function getHtml(url) {
@@ -76,7 +78,7 @@ function collectLinks(html, baseUrl, source, category, pattern) {
     const rawContext = html.slice(start, end);
     const context = clean(rawContext);
     const dateMatch = context.match(/(?:\d{1,2}\.\s*(?:januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember)(?:\s+\d{4})?|\d{1,2}\.\d{1,2}\.\d{4}|\d{1,2}[.–-]\d{1,2}\.\s*(?:oktober|november|desember|januar|februar|mars|april|mai|juni|juli|august|september))/i);
-    const timeMatch = context.match(/\b(?:kl\.?\s*)?\d{1,2}[.:]\d{2}\b/i);
+    const timeMatch = context.match(/\b(?:kl\.?\s*)?(?:[01]?\d|2[0-3]):[0-5]\d\b/i);
     const venueMatch = context.match(/\b(?:USF Verftet|Røkeriet|Sardinen|Cinemateket|Hallen USF|Drotningsvik Senter|Damsgård skole|Ny-Krohnborg fellesbibliotek|Bergen Kjøtt|Kong Christian Fredriks plass|Thon Senter Bergen|Møllaren Aktivitetshus)\b/i);
     const addressMatch = context.match(/\b(?:Georgernes Verft|Drotningsvikveien|Herman Grans vei|Rogagaten|Skutevikstorget|Strømgaten|Professor Hansteens gate)\s+\d+[A-Za-z]?/i);
     if (!/^https?:$/.test(new URL(url).protocol) || seen.has(url)) continue;
